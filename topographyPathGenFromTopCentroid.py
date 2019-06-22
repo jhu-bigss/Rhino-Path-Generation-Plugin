@@ -1,4 +1,3 @@
-import Rhino
 import rhinoscriptsyntax as rs
 from myFunctions import*
 
@@ -13,18 +12,9 @@ mesh_pts = rs.GetPointOnMesh(mesh, "Select a vertice on mesh")
 # Create the first operation plane with norm vec (input1 -> input2)
 intersect_plane = planeFrom2Pts(mesh_pts, centroid_pts)
 
-polylines_num = 10 # number of polylines to be generated
-polylines_offset_distance = 3 # offset distance unit: mm
-polyline_array = []
-for i in range(polylines_num):
-    # Plane intersection on mesh
-    polylines_intersect = Rhino.Geometry.Intersect.Intersection.MeshPlane(rs.coercemesh(mesh), intersect_plane)
-    for result in polylines_intersect:
-        polyline_array.append(result)
-        # Add polyline into Rhino UI
-        rs.AddPolyline(result)
-    # translate the intersect plane along its normal axis by a given distance
-    xform = rs.XformTranslation(polylines_offset_distance*intersect_plane.ZAxis)
-    intersect_plane = rs.PlaneTransform(intersect_plane, xform)
+intersect_num = 10 # number of polylines to be generated
+offset_distance = 3 # polyline offset distance unit: mm
 
-print polyline_array
+polyline_point_array = polylineMeshPlaneIntersect(mesh, intersect_plane, offset_distance, intersect_num)
+
+print polyline_point_array

@@ -1,4 +1,3 @@
-import Rhino
 import rhinoscriptsyntax as rs
 from myFunctions import*
 
@@ -10,21 +9,19 @@ plane_constr_y = rs.GetPointOnMesh(mesh, "Select 1st vertice on mesh for constru
 plane_constr_origin = rs.GetPointOnMesh(mesh, "Select 2nd vertice on mesh for constructing a plane")
 plane_constr_x = rs.GetPointOnMesh(mesh, "Select 3rd vertice on mesh for constructing a plane")
 
-# Create the first intersection plane
-intersect_plane = rs.PlaneFromPoints(plane_constr_origin, plane_constr_x, plane_constr_y)
+# Create the first intersection plane, then flip t
+intersect_plane = planeFlipNormal(rs.PlaneFromPoints(plane_constr_origin, plane_constr_x, plane_constr_y))
 
-polylines_num = 10 # number of polylines to be generated
-polylines_offset_distance = -3 # offset distance unit: mm
-polyline_array = []
-for i in range(polylines_num):
-    # Plane intersection on mesh
-    polylines_intersect = Rhino.Geometry.Intersect.Intersection.MeshPlane(rs.coercemesh(mesh), intersect_plane)
-    for result in polylines_intersect:
-        polyline_array.append(result)
-        # Add polyline into Rhino UI
-        rs.AddPolyline(result)
-    # translate the intersect plane along its normal axis by a given distance
-    xform = rs.XformTranslation(polylines_offset_distance*intersect_plane.ZAxis)
-    intersect_plane = rs.PlaneTransform(intersect_plane, xform)
+intersect_num = 10 # number of polylines to be generated
+offset_distance = 3 # polyline offset distance unit: mm
 
-print polyline_array
+polyline_point_array = polylineMeshPlaneIntersect(mesh, intersect_plane, offset_distance, intersect_num)
+
+# Transform polyline point 
+xform_2 = rs.XformRotation2(45.0, (0,0,1), (0,0,0))
+polyline_point_array_transformed = transformPolylines(polyline_point_array, xform_2)
+for polyline in polyline_point_array_transformed:
+    rs.AddPolyline(polyline)
+
+## Exporting the points save as *.cvs file
+#exportPolylinePoints(polyline_point_array)
