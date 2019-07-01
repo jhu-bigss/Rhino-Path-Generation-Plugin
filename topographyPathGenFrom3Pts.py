@@ -17,11 +17,14 @@ offset_distance = 3 # polyline offset distance unit: mm
 
 polyline_point_array = polylineMeshPlaneIntersect(mesh, intersect_plane, offset_distance, intersect_num)
 
-# Transform polyline point 
-xform_2 = rs.XformRotation2(45.0, (0,0,1), (0,0,0))
-polyline_point_array_transformed = transformPolylines(polyline_point_array, xform_2)
-for polyline in polyline_point_array_transformed:
+for polyline in polyline_point_array:
     rs.AddPolyline(polyline)
+
+# Transform polyline point 
+#xform_2 = rs.XformRotation2(45.0, (0,0,1), (0,0,0))
+#polyline_point_array_transformed = transformPolylines(polyline_point_array, xform_2)
+#for polyline in polyline_point_array_transformed:
+#    rs.AddPolyline(polyline)
 
 ## Exporting the points save as *.cvs file
 #exportPolylinePoints(polyline_point_array)

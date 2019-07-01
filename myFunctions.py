@@ -65,9 +65,6 @@ def exportPolylinePoints(polyline_list):
     file.close()
     return
 
-#def registrationPointMachine():
-    
-#def registrationPointImplant():
 
 def transformPolylines(polyline_list, transform_matrix):
     """transform a polyline point array/list by the given transformation matrix"""
@@ -76,11 +73,3 @@ def transformPolylines(polyline_list, transform_matrix):
         polyline_transformed_list.append(rs.PointArrayTransform(polyline, transform_matrix))
     
     return polyline_transformed_list
-
-
-#def forwardKins3Axis(joint_list)
-
-#def inverseKins3Axis(coordinate_list)
-
-#def exportGcode(joint_list)
-
