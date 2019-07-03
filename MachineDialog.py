@@ -2,12 +2,12 @@
 # MachineDialog.py
 # Copyright (c) 2019 Joshua Liu
 ################################################################################
-import rhinoscriptsyntax as rs
 import Rhino.UI
 import Eto.Drawing as drawing
 import Eto.Forms as forms
 
-from kinematics import machine3Axis
+#from kinematics import Robot
+
 ################################################################################
 # Machine Joint Input dialog class extending the Eto Dialog([T])
 ################################################################################
