@@ -9,7 +9,7 @@ class TopographyPath():
         self.intersect_num = intersect_num # number of polylines to be generated
         self.offset_dis = offset_dis # polyline offset distance unit: mm
 
-    def generateFrom3Pts(self, plane_constr_y, plane_constr_origin, plane_constr_x):
+    def generatePolylineFrom3Pts(self, plane_constr_y, plane_constr_origin, plane_constr_x):
         # Create the first intersection plane, and flip the plane normal
         self.intersect_plane = self.planeFlipNormal(rs.PlaneFromPoints(plane_constr_origin, plane_constr_x, plane_constr_y))
 
@@ -17,7 +17,7 @@ class TopographyPath():
         polyline_point_array = self.polylineMeshPlaneIntersect(self.intersect_plane, self.intersect_num, self.offset_dis)
         return polyline_point_array
 
-    def generateFromCentroidTopPt(self, top_point):
+    def generatePolylineFromCentroidTopPt(self, top_point):
         """ function creates a plane with its normal from top point pointing to the mesh centroid"""
         # Compute the centroid of the mesh
         centroid_pts = rs.MeshAreaCentroid(self.mesh)
@@ -90,11 +90,11 @@ class TopographyPath():
         return polyline_transformed_list
 
 
-
 if __name__ == "__main__":
     # Select the mesh
     mesh = rs.GetObject("Select mesh", rs.filter.mesh)
     
+    # Generate topography path
     topographyObj = TopographyPath(mesh)
 
     # Select 3 vertex on the mesh to construct a intersection plane
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     pt_2 = rs.GetPointOnMesh(mesh, "Select 2nd vertice on mesh for constructing a plane")
     pt_3 = rs.GetPointOnMesh(mesh, "Select 3rd vertice on mesh for constructing a plane")
 
-    polyline_point_array = topographyObj.generateFrom3Pts(pt_1, pt_2, pt_3)
+    polyline_point_array = topographyObj.generatePolylineFrom3Pts(pt_1, pt_2, pt_3)
     
     ## Select a top vertice on the mesh to construct a plane normal
     # mesh_top_pt = rs.GetPointOnMesh(mesh, "Select a top vertice on mesh")

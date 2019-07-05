@@ -8,7 +8,7 @@ import Rhino.UI
 import Eto.Drawing as drawing
 import Eto.Forms as forms
 
-from MachineDialog import MachineFKDialog
+from compas.utilities import XFunc
 
 ################################################################################
 # Points Registration dialog class extending the Eto Dialog([T])
@@ -16,22 +16,22 @@ from MachineDialog import MachineFKDialog
 class RegistrationDialog(forms.Dialog[bool]):
 
     def __init__(self):
-        self.Title = "Implant Points Registraion"
+        self.Title = "Points Registraion"
         self.Resizable = False
         self.Padding = drawing.Padding(5)
 
         # Stepper Points Count for registration algorithm
-        self.PtsCountStepper = forms.NumericStepper()
-        self.PtsCountStepper.MinValue = 4
-        self.PtsCountStepper.ValueChanged += self.ptsCountStepperValueChanged
-        self.RegPtsCount = int(self.PtsCountStepper.Value)
+        self.pts_count_stepper = forms.NumericStepper()
+        self.pts_count_stepper.MinValue = 4
+        self.pts_count_stepper.ValueChanged += self.ptsCountStepperValueChanged
+        self.reg_pts_count = int(self.pts_count_stepper.Value)
 
         # set content of the collapsed section
         self.collapsePanel = forms.DynamicLayout(Visible = False, Padding = drawing.Padding(40, 10), DefaultSpacing = drawing.Size(5, 5))
         self.collapsePanel.BeginVertical()
         
         # --- machine grid view ---
-        machine_groupbox = forms.GroupBox(Text = 'Machine Points')
+        machine_groupbox = forms.GroupBox(Text = 'Collected Points (Workspace)')
         machine_grouplayout = forms.DynamicLayout()
         
         # list coordinates of collect points in a TreeGridView
@@ -67,7 +67,7 @@ class RegistrationDialog(forms.Dialog[bool]):
         
         # Initialize table content
         self.machine_pts_array =[]
-        for i in range(self.RegPtsCount):
+        for i in range(self.reg_pts_count):
             self.machine_pts_array.append([i+1, None, None, None])
 
         # update grid view data
@@ -75,14 +75,14 @@ class RegistrationDialog(forms.Dialog[bool]):
         
         # put everything into machine group layout
         machine_grouplayout.AddRow(None, self.machine_pts_gridview)
-        self.machine_pts_load_button = forms.Button(Text = 'Load Machine Points')
-        self.machine_pts_load_button.Click += self.machineLoadButton_Click
-        machine_grouplayout.AddRow(None, self.machine_pts_load_button)
+        self.sensor_pts_load_button = forms.Button(Text = 'Input Sensor Data')
+        self.sensor_pts_load_button.Click += self.sensorLoadButton_Click
+        machine_grouplayout.AddRow(None, self.sensor_pts_load_button)
         machine_groupbox.Content = machine_grouplayout
         self.collapsePanel.AddRow(None, machine_groupbox)
         
         # --- mesh grid view ---
-        mesh_groupbox = forms.GroupBox(Text = 'Mesh Points')
+        mesh_groupbox = forms.GroupBox(Text = 'Selected Mesh Points')
         mesh_grouplayout = forms.DynamicLayout()
         
         # list all the coordinates of collect points in a GridView
@@ -118,7 +118,7 @@ class RegistrationDialog(forms.Dialog[bool]):
         
         # Initialize table content
         self.mesh_pts_array =[]
-        for i in range(self.RegPtsCount):
+        for i in range(self.reg_pts_count):
             self.mesh_pts_array.append([i+1, None, None, None])
         
         # update grid view data
@@ -126,7 +126,7 @@ class RegistrationDialog(forms.Dialog[bool]):
         
         # put everything into mesh group layout
         mesh_grouplayout.AddRow(None, self.mesh_pts_gridview)
-        self.mesh_pts_select_button = forms.Button(Text = 'Select Mesh Points')
+        self.mesh_pts_select_button = forms.Button(Text = 'Select On Mesh')
         self.mesh_pts_select_button.Click += self.meshSelectButton_Click
         mesh_grouplayout.AddRow(None, self.mesh_pts_select_button)
         mesh_groupbox.Content = mesh_grouplayout
@@ -161,7 +161,7 @@ class RegistrationDialog(forms.Dialog[bool]):
         
         # App main layout
         layout = forms.DynamicLayout(DefaultSpacing = drawing.Size(2,2))
-        layout.AddSeparateRow(None, L("Correspondence points "), self.PtsCountStepper, None, self.collapseButton)
+        layout.AddSeparateRow(None, L("Correspondence points "), self.pts_count_stepper, None, self.collapseButton)
         layout.AddCentered(self.collapsePanel) # we need this auto-sized so we can get its width to adjust form height
         layout.Add(None); # expanding space, in case you want the form re-sizable
         layout.AddSeparateRow(None, self.previewButton, self.cancelButton, self.okButton);
@@ -178,22 +178,19 @@ class RegistrationDialog(forms.Dialog[bool]):
            self.collapsePanel.Visible = True
            self.collapseButton.Text = "v"
            self.ClientSize = drawing.Size(max(self.ClientSize.Width, self.collapsePanel.Width), self.ClientSize.Height + self.collapsePanel.Height)
-#            except:
-#             print "Unexpected error:", sys.exc_info()[0]
-#             pass # so we don't bring down rhino if there's a bug in the script
 
     def ptsCountStepperValueChanged(self, sender, e):
         """update the table content whenever point counts modified"""
         # Input: gridview object, data points array, current number of points
-        count_now = int(self.PtsCountStepper.Value)
-        count_difference = count_now - self.RegPtsCount
+        count_now = int(self.pts_count_stepper.Value)
+        count_difference = count_now - self.reg_pts_count
         self.updateGridItem(self.machine_pts_gridview, self.machine_pts_array, count_difference)
         self.updateGridItem(self.mesh_pts_gridview, self.mesh_pts_array, count_difference)
-        self.RegPtsCount = count_now
+        self.reg_pts_count = count_now
 
     def updateGridItem(self, gridview_obj, data_array, difference = 0):
         """update point arrays in the grid view table content"""
-        counter = self.RegPtsCount
+        counter = self.reg_pts_count
         if difference > 0:
             for i in range(difference):
                 counter += 1
@@ -208,16 +205,16 @@ class RegistrationDialog(forms.Dialog[bool]):
             gridview_obj.DataStore = data_array
             return
 
-    def machineLoadButton_Click(self, sender, e):
-        self.Machine_Dialog = MachineFKDialog(self.RegPtsCount)
-        self.Machine_Dialog.ShowModal(Rhino.UI.RhinoEtoApp.MainWindow)
-        temp = self.Machine_Dialog.finishButton_Click(sender, e)
+    def sensorLoadButton_Click(self, sender, e):
+        self.sensor_dialog = SensorDialog(self.reg_pts_count)
+        self.sensor_dialog.ShowModal(Rhino.UI.RhinoEtoApp.MainWindow)
+        temp = self.sensor_dialog.finishButton_Click(sender, e)
         print temp
 
     def meshSelectButton_Click(self, sender, e):
         # Select the mesh
         mesh = rs.GetObject("Select mesh", rs.filter.mesh )
-        for i in range(self.RegPtsCount):
+        for i in range(self.reg_pts_count):
             # pick point on the mesh
             selected_point = rs.GetPointOnMesh(mesh, "Pick registration point " + str(i+1))
             self.mesh_pts_array[i] = [i+1, selected_point.X, selected_point.Y, selected_point.Z]
@@ -228,10 +225,208 @@ class RegistrationDialog(forms.Dialog[bool]):
         self.Close(False)
 
     def okButton_Click (self, sender, e):
+        # self.test_rigid_transform_3D()
         self.Close(True)
+    
+    def rigid_transform_3D(self, A, B):
+        # Input: expects Nx3 matrix of points
+        # Returns R,t
+        # R = 3x3 rotation matrix
+        # t = 1x3 row vector
+        add = XFunc("numpy.add")
+        subtract = XFunc("numpy.subtract")
+        linalg_svd = XFunc('numpy.linalg.svd')
+        dot = XFunc("numpy.dot")
+        transpose = XFunc("numpy.transpose")
+        det = XFunc('numpy.linalg.det')
+        mean = XFunc('numpy.mean')
+        
+        assert len(A) == len(B)
+        N = len(A) # total points
+    
+        centroid_A = mean(A, axis=0)
+        centroid_B = mean(B, axis=0)
+        
+        # centre the points
+        AA = subtract(A, centroid_A)
+        BB = subtract(B, centroid_B)
+        
+        # dot is matrix multiplication for array
+        H = dot(transpose(AA),BB)
+        U, S, Vt = linalg_svd(H)
+        # R = Vt.T * U.T
+        R = dot(transpose(Vt),transpose(U))
+    
+        # special reflection case
+        if det(R) < 0:
+           print "Reflection detected"
+           Vt[2][:] = [x*-1 for x in Vt[2]]
+           R = dot(transpose(Vt),transpose(U))
+    
+        # t = -R*centroid_A.T + centroid_B.T
+        t = subtract(transpose(centroid_B), dot(R, transpose(centroid_A)) )
+    
+        return R, t
+    
+    def test_rigid_transform_3D(self):
+        # import some Numpy functions
+        add = XFunc("numpy.add")
+        subtract = XFunc("numpy.subtract")
+        multiply = XFunc("numpy.multiply")
+        rand = XFunc('numpy.random.rand')
+        linalg_svd = XFunc('numpy.linalg.svd')
+        dot = XFunc("numpy.dot")
+        transpose = XFunc("numpy.transpose")
+        det = XFunc('numpy.linalg.det')
+        sum = XFunc("numpy.sum")
+        sqrt = XFunc("numpy.sqrt")
+        
+        # Random rotation and translation
+        R = rand(3,3)
+        t = rand(3)
+        
+        # make R a proper rotation matrix, force orthonormal
+        U, S, Vt = linalg_svd(R)
+        R = dot(transpose(Vt),transpose(U))
+        
+        # remove reflection
+        if det(R) < 0:
+           Vt[2][:] = [x*-1 for x in Vt[2]]
+           R = dot(transpose(Vt),transpose(U))
+        
+        # number of points
+        n = 10
+        
+        A = rand(n,3)
+    
+        # B = R * A + t
+        B = add(transpose(dot(R, transpose(A))), t)
+        
+        # recover the transformation
+        ret_R, ret_t = self.rigid_transform_3D(A, B)
+        
+        A2 = add(transpose(dot(ret_R, transpose(A))), ret_t)
+        
+        # Find the error
+        err = subtract(A2,B)
+        
+        err = multiply(err, err)
+        err = sum(err)
+        rmse = sqrt(err/n)
+        
+        print "Points A"
+        print A
+        print ""
+        
+        print "Points B"
+        print B
+        print ""
+        
+        print "Rotation"
+        print R
+        print ""
+        
+        print "Translation"
+        print t
+        print ""
+        
+        print "RMSE:", rmse
+        print "If RMSE is near zero, the function is correct!"
 
-        if self.ShowModal():
-            print "Do something, user clicked OK"
+################################################################################
+# Sensor Fiducial Points Input dialog class extending the Eto Dialog([T])
+################################################################################
+class SensorDialog(forms.Dialog[bool]):
+    
+    def __init__(self, reg_pts_count = 4):
+        self.reg_pts_count = reg_pts_count
+
+        self.Title = "ODmini UI"
+        self.Resizable = False
+        self.Padding = drawing.Padding(5)
+
+        # --- joints grid view ---
+        joint_input_groupbox = forms.GroupBox(Text = 'Input Sensor Measurements:')
+        joint_input_grouplayout = forms.DynamicLayout()
+         
+        # list coordinates of collect points in a TreeGridView
+        self.joints_gridview = forms.GridView()
+        self.joints_gridview.ShowHeader = True
+        self.joints_gridview.Size = drawing.Size(200, 100)
+        
+        column0 = forms.GridColumn()
+        column0.HeaderText = 'ID'
+        column0.DataCell = forms.TextBoxCell(0)
+        self.joints_gridview.Columns.Add(column0)
+
+        column1 = forms.GridColumn()
+        column1.HeaderText = 'X'
+        column1.Editable = True
+        column1.Width = 35
+        column1.DataCell = forms.TextBoxCell(1)
+        self.joints_gridview.Columns.Add(column1)
+        
+        column2 = forms.GridColumn()
+        column2.HeaderText = 'Y'
+        column2.Editable = True
+        column2.Width = 35
+        column2.DataCell = forms.TextBoxCell(2)
+        self.joints_gridview.Columns.Add(column2)
+
+        column3 = forms.GridColumn()
+        column3.HeaderText = 'Z'
+        column3.Editable = True
+        column3.Width = 35
+        column3.DataCell = forms.TextBoxCell(3)
+        self.joints_gridview.Columns.Add(column3)
+        
+        column4 = forms.GridColumn()
+        column4.HeaderText = 'distance'
+        column4.Editable = True
+        column4.Width = 35
+        column4.DataCell = forms.TextBoxCell(4)
+        self.joints_gridview.Columns.Add(column4)
+        
+        
+        # Initialize table content
+        self.joints_array =[]
+        for i in range(self.reg_pts_count):
+            self.joints_array.append([i+1, None, None, None, None, None])
+
+        # update grid view data
+        self.joints_gridview.DataStore = self.joints_array
+        
+        # put everything into group layout
+        joint_input_grouplayout.AddRow(None, self.joints_gridview)
+        joint_input_groupbox.Content = joint_input_grouplayout
+        
+        
+        self.cancelButton = forms.Button(Text = "Cancel")
+        self.cancelButton.Click += self.cancelButton_Click;
+
+        self.finishButton = forms.Button(Text = "OK")
+        self.finishButton.Click += self.finishButton_Click
+        
+        # set default buttons when user presses enter or escape anywhere on the form
+        self.DefaultButton = self.finishButton
+        self.AbortButton = self.cancelButton
+        
+        # App main layout
+        layout = forms.DynamicLayout(DefaultSpacing = drawing.Size(2,2))
+        layout.AddCentered(joint_input_groupbox) # we need this auto-sized so we can get its width to adjust form height
+        layout.Add(None); # expanding space, in case you want the form re-sizable
+        layout.AddSeparateRow(None, self.cancelButton, self.finishButton);
+
+        self.Content = layout;
+
+    def cancelButton_Click (self, sender, e):
+        self.Close(False)
+
+    def finishButton_Click (self, sender, e):
+        self.Close(True)
+        return self.joints_gridview.DataStore
+
+
 
 ################################################################################
 # Creating a dialog instance and displaying the dialog.
