@@ -1,12 +1,18 @@
+################################################################################
+# PathDialog.py
+# Copyright (c) 2019 Joshua Liu
+################################################################################
 import Rhino.UI
 import Eto.Drawing as drawing
 import Eto.Forms as forms
+
+from RegistrationDialog import RegistrationDialog
 
 class PathDialog(forms.Dialog[bool]):
 
     # initialiazation
     def __init__(self):
-        self.Title = 'Path Generation'
+        self.Title = 'Laser Path Generation'
         self.Paddomg = drawing.Padding(5)
         self.Resizable = False
 
@@ -30,7 +36,7 @@ class PathDialog(forms.Dialog[bool]):
         # ---------------------------
 
         # - Topography Path group box -
-        topography_groupbox = forms.GroupBox(Text = 'Topography Path Generation', Padding = 5)
+        topography_groupbox = forms.GroupBox(Text = 'Topography Path', Padding = 5)
         grouplayout = forms.DynamicLayout()
         
         self.configure_button = forms.Button(Text = 'Configure')
@@ -70,6 +76,7 @@ class PathDialog(forms.Dialog[bool]):
         self.AbortButton = forms.Button(Text = 'Cancel')
         self.AbortButton.Click += self.OnCloseButtonClick
 
+        # -- Window Layout --
         layout = forms.DynamicLayout(Padding = drawing.Padding(10, 5), DefaultSpacing = drawing.Size(2,2))
 
         layout.BeginVertical()
@@ -91,30 +98,38 @@ class PathDialog(forms.Dialog[bool]):
 
     # Registration Start button click handler
     def OnRegisterButtonClick(self, sender, e):
-        return
+        self.status_textbox.Text = 'registration in progress ...'
+        self.registration_dialog = RegistrationDialog()
+        Rhino.UI.EtoExtensions.ShowSemiModal(self.registration_dialog, Rhino.RhinoDoc.ActiveDoc, Rhino.UI.RhinoEtoApp.MainWindow)
+        temp = self.registration_dialog.onOkButton_Click(sender, e)
+        print temp
+        
+        self.status_textbox.Text = 'registration complete'
 
     # Registration Apply button click handler
     def OnApplyButtonClick(self, sender, e):
-        return
+        self.status_textbox.Text = 'transformation applied'
 
     # Topography Generate button click handler
     def OnConfigureButtonClick(self, sender, e):
+        self.status_textbox.Text = 'configuring...'
         self.topography_configure_dialog = TopographyConfigureDialog()
         self.topography_configure_dialog.ShowModal(Rhino.UI.RhinoEtoApp.MainWindow)
         temp = self.topography_configure_dialog.OnOKButtonClick(sender, e)
         print temp
+        self.status_textbox.Text = 'configuration complete'
 
     # Topography Preview button click handler
     def OnGenerateButtonClick(self, sender, e):
-        return
+        self.status_textbox.Text = 'topography path generated'
 
     # G-code Generate button click handler
     def OnConvertButtonClick(self, sender, e):
-        return
+        self.status_textbox.Text = 'Gcode generated'
 
     # G-code Export button click handler
     def OnExportButtonClick(self, sender, e):
-        return
+        self.status_textbox.Text = 'Gcode exported'
 
     # Close button click handler
     def OnCloseButtonClick(self, sender, e):
@@ -123,10 +138,8 @@ class PathDialog(forms.Dialog[bool]):
 
     # Close button click handler
     def OnOKButtonClick(self, sender, e):
-        if self.status_textbox.Text == "":
-            self.Close(False)
-        else:
-            self.Close(True)
+        self.Close(True)
+        
 
 
 class TopographyConfigureDialog(forms.Dialog[bool]):
@@ -184,8 +197,8 @@ class TopographyConfigureDialog(forms.Dialog[bool]):
 
     # Close button click handler
     def OnOKButtonClick(self, sender, e):
-        self.Close(False)
-        return self.mode_combobox.SelectedIndex, self.path_count_stepper.Value, self.offset_dist_stepper.Value
+        self.Close(True)
+        return [self.mode_combobox.SelectedIndex, self.path_count_stepper.Value, self.offset_dist_stepper.Value]
 
 # The script that will be using the dialog.
 def testPathDialog():

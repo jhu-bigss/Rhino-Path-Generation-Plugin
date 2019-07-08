@@ -2,13 +2,14 @@
 # RegistrationDialog.py
 # Copyright (c) 2019 Joshua Liu
 ################################################################################
-import scriptcontext
 import rhinoscriptsyntax as rs
 import Rhino.UI
 import Eto.Drawing as drawing
 import Eto.Forms as forms
 
 from compas.utilities import XFunc
+
+from Robot import Robot
 
 ################################################################################
 # Points Registration dialog class extending the Eto Dialog([T])
@@ -139,13 +140,11 @@ class RegistrationDialog(forms.Dialog[bool]):
         self.collapseButton.Click += self.collapseButton_Click
         
         # a few buttons always shown at the bottom
-        self.previewButton = forms.Button(Text = "Preview")
-
         self.cancelButton = forms.Button(Text = "Cancel")
-        self.cancelButton.Click += self.cancelButton_Click;
+        self.cancelButton.Click += self.onCancelButton_Click;
 
         self.okButton = forms.Button(Text = "OK")
-        self.okButton.Click += self.okButton_Click
+        self.okButton.Click += self.onOkButton_Click
         
         # set default buttons when user presses enter or escape anywhere on the form
         self.DefaultButton = self.okButton
@@ -164,7 +163,7 @@ class RegistrationDialog(forms.Dialog[bool]):
         layout.AddSeparateRow(None, L("Correspondence points "), self.pts_count_stepper, None, self.collapseButton)
         layout.AddCentered(self.collapsePanel) # we need this auto-sized so we can get its width to adjust form height
         layout.Add(None); # expanding space, in case you want the form re-sizable
-        layout.AddSeparateRow(None, self.previewButton, self.cancelButton, self.okButton);
+        layout.AddSeparateRow(None, self.cancelButton, self.okButton);
 
         self.Content = layout;
 
@@ -208,8 +207,7 @@ class RegistrationDialog(forms.Dialog[bool]):
     def sensorLoadButton_Click(self, sender, e):
         self.sensor_dialog = SensorDialog(self.reg_pts_count)
         self.sensor_dialog.ShowModal(Rhino.UI.RhinoEtoApp.MainWindow)
-        temp = self.sensor_dialog.finishButton_Click(sender, e)
-        print temp
+        self.machine_pts_gridview.DataStore = self.sensor_dialog.onOkButton_Click(sender, e)
 
     def meshSelectButton_Click(self, sender, e):
         # Select the mesh
@@ -221,10 +219,10 @@ class RegistrationDialog(forms.Dialog[bool]):
         # Update grid content
         self.updateGridItem(self.mesh_pts_gridview, self.mesh_pts_array)
 
-    def cancelButton_Click (self, sender, e):
+    def onCancelButton_Click (self, sender, e):
         self.Close(False)
 
-    def okButton_Click (self, sender, e):
+    def onOkButton_Click (self, sender, e):
         # self.test_rigid_transform_3D()
         self.Close(True)
     
@@ -341,91 +339,111 @@ class SensorDialog(forms.Dialog[bool]):
     def __init__(self, reg_pts_count = 4):
         self.reg_pts_count = reg_pts_count
 
-        self.Title = "ODmini UI"
+        self.Title = "ODmini Dialog"
         self.Resizable = False
         self.Padding = drawing.Padding(5)
 
         # --- joints grid view ---
-        joint_input_groupbox = forms.GroupBox(Text = 'Input Sensor Measurements:')
-        joint_input_grouplayout = forms.DynamicLayout()
+        data_input_groupbox = forms.GroupBox(Text = 'Input Sensor Measurements:')
+        data_input_grouplayout = forms.DynamicLayout()
          
         # list coordinates of collect points in a TreeGridView
-        self.joints_gridview = forms.GridView()
-        self.joints_gridview.ShowHeader = True
-        self.joints_gridview.Size = drawing.Size(200, 100)
+        self.data_gridview = forms.GridView()
+        self.data_gridview.ShowHeader = True
+        self.data_gridview.Size = drawing.Size(200, 100)
         
         column0 = forms.GridColumn()
         column0.HeaderText = 'ID'
         column0.DataCell = forms.TextBoxCell(0)
-        self.joints_gridview.Columns.Add(column0)
+        self.data_gridview.Columns.Add(column0)
 
         column1 = forms.GridColumn()
         column1.HeaderText = 'X'
         column1.Editable = True
         column1.Width = 35
         column1.DataCell = forms.TextBoxCell(1)
-        self.joints_gridview.Columns.Add(column1)
+        self.data_gridview.Columns.Add(column1)
         
         column2 = forms.GridColumn()
         column2.HeaderText = 'Y'
         column2.Editable = True
         column2.Width = 35
         column2.DataCell = forms.TextBoxCell(2)
-        self.joints_gridview.Columns.Add(column2)
+        self.data_gridview.Columns.Add(column2)
 
         column3 = forms.GridColumn()
         column3.HeaderText = 'Z'
         column3.Editable = True
         column3.Width = 35
         column3.DataCell = forms.TextBoxCell(3)
-        self.joints_gridview.Columns.Add(column3)
+        self.data_gridview.Columns.Add(column3)
         
         column4 = forms.GridColumn()
         column4.HeaderText = 'distance'
         column4.Editable = True
         column4.Width = 35
         column4.DataCell = forms.TextBoxCell(4)
-        self.joints_gridview.Columns.Add(column4)
+        self.data_gridview.Columns.Add(column4)
         
         
         # Initialize table content
-        self.joints_array =[]
+        self.data_array =[]
         for i in range(self.reg_pts_count):
-            self.joints_array.append([i+1, None, None, None, None, None])
+#            self.data_array.append([i+1, None, None, None, None])
+            self.data_array.append([i+1, 10, 10, 10, 10])
 
         # update grid view data
-        self.joints_gridview.DataStore = self.joints_array
-        
+        self.data_gridview.DataStore = self.data_array
+
         # put everything into group layout
-        joint_input_grouplayout.AddRow(None, self.joints_gridview)
-        joint_input_groupbox.Content = joint_input_grouplayout
+        data_input_grouplayout.AddRow(self.data_gridview)
+        data_input_groupbox.Content = data_input_grouplayout
         
         
         self.cancelButton = forms.Button(Text = "Cancel")
-        self.cancelButton.Click += self.cancelButton_Click;
+        self.cancelButton.Click += self.onCancelButton_Click;
 
-        self.finishButton = forms.Button(Text = "OK")
-        self.finishButton.Click += self.finishButton_Click
+        self.okButton = forms.Button(Text = "OK")
+        self.okButton.Click += self.onOkButton_Click
         
         # set default buttons when user presses enter or escape anywhere on the form
-        self.DefaultButton = self.finishButton
+        self.DefaultButton = self.okButton
         self.AbortButton = self.cancelButton
         
         # App main layout
         layout = forms.DynamicLayout(DefaultSpacing = drawing.Size(2,2))
-        layout.AddCentered(joint_input_groupbox) # we need this auto-sized so we can get its width to adjust form height
+        layout.AddCentered(data_input_groupbox) # we need this auto-sized so we can get its width to adjust form height
         layout.Add(None); # expanding space, in case you want the form re-sizable
-        layout.AddSeparateRow(None, self.cancelButton, self.finishButton);
+        layout.AddSeparateRow(None, self.cancelButton, self.okButton);
 
         self.Content = layout;
 
-    def cancelButton_Click (self, sender, e):
-        self.Close(False)
+    def convertDataToWorkCoordinates(self):
+        # new robot-class object
+        robot = Robot()
 
-    def finishButton_Click (self, sender, e):
+        # Convert data array into float
+        data_grid_float = []
+        for row in self.data_gridview.DataStore:
+            data_grid_float.append([float(i) for i in row[1:]])
+        
+        # Compute workpiece coordinates for each data set
+        data_array_work_coordinates = []
+        id_index = 1
+        for data_set in data_grid_float:
+            data_work_coordinates = robot.getWorkPtPosFromSensorJoints(data_set)
+            data_work_coordinates.insert(0, id_index)
+            data_array_work_coordinates.append(data_work_coordinates)
+            id_index += 1
+
+        return data_array_work_coordinates
+
+    def onOkButton_Click (self, sender, e):
         self.Close(True)
-        return self.joints_gridview.DataStore
+        return self.convertDataToWorkCoordinates()
 
+    def onCancelButton_Click (self, sender, e):
+        self.Close(False)
 
 
 ################################################################################

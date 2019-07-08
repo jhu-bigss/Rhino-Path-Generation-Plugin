@@ -1,4 +1,4 @@
-import math
+#import math
 
 class Robot():
     def __init__(self):
@@ -45,7 +45,7 @@ class Robot():
         pt_y = - self.home_to_rotary_center_y + self.joint_y
         pt_z = - self.home_to_rotary_center_z + self.joint_z - self.rotary_center_to_work_origin - sensor_measured
         
-        return pt_x, pt_y, pt_z
+        return [pt_x, pt_y, pt_z]
 
 if __name__ == "__main__":
     robot = Robot()
