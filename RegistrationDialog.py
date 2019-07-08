@@ -47,21 +47,18 @@ class RegistrationDialog(forms.Dialog[bool]):
 
         column1 = forms.GridColumn()
         column1.HeaderText = 'X'
-        column1.Editable = True
         column1.Width = 55
         column1.DataCell = forms.TextBoxCell(1)
         self.machine_pts_gridview.Columns.Add(column1)
         
         column2 = forms.GridColumn()
         column2.HeaderText = 'Y'
-        column2.Editable = True
         column2.Width = 55
         column2.DataCell = forms.TextBoxCell(2)
         self.machine_pts_gridview.Columns.Add(column2)
 
         column3 = forms.GridColumn()
         column3.HeaderText = 'Z'
-        column3.Editable = True
         column3.Width = 55
         column3.DataCell = forms.TextBoxCell(3)
         self.machine_pts_gridview.Columns.Add(column3)
@@ -212,10 +209,11 @@ class RegistrationDialog(forms.Dialog[bool]):
     def meshSelectButton_Click(self, sender, e):
         # Select the mesh
         mesh = rs.GetObject("Select mesh", rs.filter.mesh )
+        decimal_point = 3
         for i in range(self.reg_pts_count):
             # pick point on the mesh
             selected_point = rs.GetPointOnMesh(mesh, "Pick registration point " + str(i+1))
-            self.mesh_pts_array[i] = [i+1, selected_point.X, selected_point.Y, selected_point.Z]
+            self.mesh_pts_array[i] = [i+1, round(selected_point.X, decimal_point), round(selected_point.Y, decimal_point), round(selected_point.Z, decimal_point)]
         # Update grid content
         self.updateGridItem(self.mesh_pts_gridview, self.mesh_pts_array)
 

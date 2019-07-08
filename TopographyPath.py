@@ -106,7 +106,7 @@ if __name__ == "__main__":
     
     ## Select a top vertice on the mesh to construct a plane normal
     # mesh_top_pt = rs.GetPointOnMesh(mesh, "Select a top vertice on mesh")
-    # polyline_point_array = topographyObj.generateFromCentroidTopPt(mesh_top_pt)
+    # polyline_point_array = topographyObj.generatePolylineFromCentroidTopPt(mesh_top_pt)
     
     print polyline_point_array
 

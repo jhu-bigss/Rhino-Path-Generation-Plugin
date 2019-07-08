@@ -2,11 +2,13 @@
 # PathDialog.py
 # Copyright (c) 2019 Joshua Liu
 ################################################################################
+import rhinoscriptsyntax as rs
 import Rhino.UI
 import Eto.Drawing as drawing
 import Eto.Forms as forms
 
 from RegistrationDialog import RegistrationDialog
+from TopographyPath import TopographyPath
 
 class PathDialog(forms.Dialog[bool]):
 
@@ -110,23 +112,40 @@ class PathDialog(forms.Dialog[bool]):
     def OnApplyButtonClick(self, sender, e):
         self.status_textbox.Text = 'transformation applied'
 
-    # Topography Generate button click handler
+    # Topography Configure button click handler
     def OnConfigureButtonClick(self, sender, e):
-        self.status_textbox.Text = 'configuring...'
+        self.status_textbox.Text = 'configuring topography...'
         self.topography_configure_dialog = TopographyConfigureDialog()
         self.topography_configure_dialog.ShowModal(Rhino.UI.RhinoEtoApp.MainWindow)
-        temp = self.topography_configure_dialog.OnOKButtonClick(sender, e)
-        print temp
+        [self.topo_gen_mode, self.topo_path_count, self.topo_offset_dist] = self.topography_configure_dialog.OnOKButtonClick(sender, e)
         self.status_textbox.Text = 'configuration complete'
 
-    # Topography Preview button click handler
+    # Topography Generate button click handler
     def OnGenerateButtonClick(self, sender, e):
-        self.status_textbox.Text = 'topography path generated'
-
+        self.status_textbox.Text = 'generating topography path'
+        # Select the mesh
+        mesh = rs.GetObject("Select mesh", rs.filter.mesh)
+        topography_path = TopographyPath(mesh, self.topo_path_count, self.topo_offset_dist)
+        if self.topo_gen_mode is 0:
+            # Select 3 vertex on the mesh to construct a intersection plane
+            pt_1 = rs.GetPointOnMesh(mesh, "Select 1st vertice on mesh for constructing a plane")
+            pt_2 = rs.GetPointOnMesh(mesh, "Select 2nd vertice on mesh for constructing a plane")
+            pt_3 = rs.GetPointOnMesh(mesh, "Select 3rd vertice on mesh for constructing a plane")
+            self.polyline_point_array = topography_path.generatePolylineFrom3Pts(pt_1, pt_2, pt_3)
+        else:
+           # Select a top vertice on the mesh to construct a plane normal
+           mesh_top_pt = rs.GetPointOnMesh(mesh, "Select a top vertice on mesh")
+           self.polyline_point_array = topography_path.generatePolylineFromCentroidTopPt(mesh_top_pt)
+        result = rs.LastCommandResult()
+        if result == 0:
+            self.status_textbox.Text = 'path generated'
+        else:
+            self.status_textbox.Text = 'unsuccessful'
+        
     # G-code Generate button click handler
     def OnConvertButtonClick(self, sender, e):
         self.status_textbox.Text = 'Gcode generated'
-
+ 
     # G-code Export button click handler
     def OnExportButtonClick(self, sender, e):
         self.status_textbox.Text = 'Gcode exported'
@@ -198,18 +217,20 @@ class TopographyConfigureDialog(forms.Dialog[bool]):
     # Close button click handler
     def OnOKButtonClick(self, sender, e):
         self.Close(True)
-        return [self.mode_combobox.SelectedIndex, self.path_count_stepper.Value, self.offset_dist_stepper.Value]
+        return [self.mode_combobox.SelectedIndex, int(self.path_count_stepper.Value), self.offset_dist_stepper.Value]
 
 # The script that will be using the dialog.
-def testPathDialog():
+def openPathDialog():
     dialog = PathDialog();
-    rc = dialog.ShowModal(Rhino.UI.RhinoEtoApp.MainWindow)
+    # Use Semi-Modal instead to allow interaction with Rhino Document
+    rc = Rhino.UI.EtoExtensions.ShowSemiModal(dialog, Rhino.RhinoDoc.ActiveDoc, Rhino.UI.RhinoEtoApp.MainWindow)
+#    rc = dialog.ShowModal(Rhino.UI.RhinoEtoApp.MainWindow)
     if (rc):
-        print 'OK'
+        print 'Thanks for using Laser Path Generation'
 
 ##########################################################################
 # Check to see if this file is being executed as the "main" python
 # script instead of being used as a module by some other python script
 # This allows us to use the module which ever way we want.
 if __name__ == "__main__":
-    testPathDialog()
+    openPathDialog()
