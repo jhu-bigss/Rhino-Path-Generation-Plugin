@@ -137,10 +137,13 @@ class RegistrationDialog(forms.Dialog[bool]):
         self.collapseButton.Click += self.collapseButton_Click
         
         # a few buttons always shown at the bottom
+        self.runButton = forms.Button(Text = "Register")
+        self.runButton.Click += self.onRunButton_Click;
+        
         self.cancelButton = forms.Button(Text = "Cancel")
         self.cancelButton.Click += self.onCancelButton_Click;
 
-        self.okButton = forms.Button(Text = "OK")
+        self.okButton = forms.Button(Text = "Apply")
         self.okButton.Click += self.onOkButton_Click
         
         # set default buttons when user presses enter or escape anywhere on the form
@@ -160,7 +163,7 @@ class RegistrationDialog(forms.Dialog[bool]):
         layout.AddSeparateRow(None, L("Correspondence points "), self.pts_count_stepper, None, self.collapseButton)
         layout.AddCentered(self.collapsePanel) # we need this auto-sized so we can get its width to adjust form height
         layout.Add(None); # expanding space, in case you want the form re-sizable
-        layout.AddSeparateRow(None, self.cancelButton, self.okButton);
+        layout.AddSeparateRow(self.runButton, None, self.cancelButton, self.okButton);
 
         self.Content = layout;
 
@@ -217,12 +220,34 @@ class RegistrationDialog(forms.Dialog[bool]):
         # Update grid content
         self.updateGridItem(self.mesh_pts_gridview, self.mesh_pts_array)
 
+    def onRunButton_Click (self, sender, e):
+        # run the registration to acquire transformation
+        self.R, self.t = self.runRegistration(self.machine_pts_gridview.DataStore, self.mesh_pts_gridview.DataStore)
+        rs.MessageBox("Registered Successfully!", buttons=0, title="")
+
     def onCancelButton_Click (self, sender, e):
         self.Close(False)
 
     def onOkButton_Click (self, sender, e):
-        # self.test_rigid_transform_3D()
         self.Close(True)
+        # apply the registration to mesh
+        mesh = rs.GetObject("Select mesh to apply the transformation", rs.filter.mesh )
+        
+        row0 = self.R[0] + [self.t[0]]
+        row1 = self.R[1] + [self.t[1]]
+        row2 = self.R[2] + [self.t[2]]
+        row3 = [0, 0, 0, 1]
+        matrix = [row0, row1, row2, row3]
+        
+        rs.TransformObject( mesh, matrix )
+    
+    def runRegistration(self, machine_pts, mesh_pts):
+        # Remove the 1st column with IDs
+        for row in machine_pts:
+            del row[0]
+        for row in mesh_pts:
+            del row[0]
+        return self.rigid_transform_3D(machine_pts, mesh_pts)
     
     def rigid_transform_3D(self, A, B):
         # Input: expects Nx3 matrix of points
@@ -252,6 +277,11 @@ class RegistrationDialog(forms.Dialog[bool]):
         U, S, Vt = linalg_svd(H)
         # R = Vt.T * U.T
         R = dot(transpose(Vt),transpose(U))
+#        print "U"
+#        print U
+#        print "Vt"
+#        print Vt
+#        print "---"
     
         # special reflection case
         if det(R) < 0:
@@ -261,73 +291,14 @@ class RegistrationDialog(forms.Dialog[bool]):
     
         # t = -R*centroid_A.T + centroid_B.T
         t = subtract(transpose(centroid_B), dot(R, transpose(centroid_A)) )
-    
+        
+#        print "R"
+#        print R
+#        print"t"
+#        print t
+        
         return R, t
-    
-    def test_rigid_transform_3D(self):
-        # import some Numpy functions
-        add = XFunc("numpy.add")
-        subtract = XFunc("numpy.subtract")
-        multiply = XFunc("numpy.multiply")
-        rand = XFunc('numpy.random.rand')
-        linalg_svd = XFunc('numpy.linalg.svd')
-        dot = XFunc("numpy.dot")
-        transpose = XFunc("numpy.transpose")
-        det = XFunc('numpy.linalg.det')
-        sum = XFunc("numpy.sum")
-        sqrt = XFunc("numpy.sqrt")
-        
-        # Random rotation and translation
-        R = rand(3,3)
-        t = rand(3)
-        
-        # make R a proper rotation matrix, force orthonormal
-        U, S, Vt = linalg_svd(R)
-        R = dot(transpose(Vt),transpose(U))
-        
-        # remove reflection
-        if det(R) < 0:
-           Vt[2][:] = [x*-1 for x in Vt[2]]
-           R = dot(transpose(Vt),transpose(U))
-        
-        # number of points
-        n = 10
-        
-        A = rand(n,3)
-    
-        # B = R * A + t
-        B = add(transpose(dot(R, transpose(A))), t)
-        
-        # recover the transformation
-        ret_R, ret_t = self.rigid_transform_3D(A, B)
-        
-        A2 = add(transpose(dot(ret_R, transpose(A))), ret_t)
-        
-        # Find the error
-        err = subtract(A2,B)
-        
-        err = multiply(err, err)
-        err = sum(err)
-        rmse = sqrt(err/n)
-        
-        print "Points A"
-        print A
-        print ""
-        
-        print "Points B"
-        print B
-        print ""
-        
-        print "Rotation"
-        print R
-        print ""
-        
-        print "Translation"
-        print t
-        print ""
-        
-        print "RMSE:", rmse
-        print "If RMSE is near zero, the function is correct!"
+
 
 ################################################################################
 # Sensor Fiducial Points Input dialog class extending the Eto Dialog([T])
@@ -386,9 +357,12 @@ class SensorDialog(forms.Dialog[bool]):
         
         # Initialize table content
         self.data_array =[]
-        for i in range(self.reg_pts_count):
+#        for i in range(self.reg_pts_count):
 #            self.data_array.append([i+1, None, None, None, None])
-            self.data_array.append([i+1, 10, 10, 10, 10])
+        self.data_array.append([1, -68, 154, 0, 48])
+        self.data_array.append([2, -182, 132.5, 0, 47.3])
+        self.data_array.append([3, -188, 202, 0, 49.2])
+        self.data_array.append([4, -145, 238.5, 0, 40.2])
 
         # update grid view data
         self.data_gridview.DataStore = self.data_array

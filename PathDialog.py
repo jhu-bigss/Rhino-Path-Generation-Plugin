@@ -24,16 +24,13 @@ class PathDialog(forms.Dialog[bool]):
         self.status_textbox.ReadOnly = True
 
         # - Registration group box -
-        registration_groupbox = forms.GroupBox(Text = 'Registration', Padding = 5)
+        registration_groupbox = forms.GroupBox(Text = 'Implant', Padding = 5)
         grouplayout = forms.DynamicLayout()
         
-        self.register_button = forms.Button(Text = 'Register')
+        self.register_button = forms.Button(Text = 'Registration')
         self.register_button.Click += self.OnRegisterButtonClick
         
-        self.apply_button = forms.Button(Text = 'Apply')
-        self.apply_button.Click += self.OnApplyButtonClick
-        
-        grouplayout.AddRow(self.register_button,' ', self.apply_button)
+        grouplayout.AddRow(self.register_button)
         registration_groupbox.Content = grouplayout
         # ---------------------------
 
@@ -101,16 +98,10 @@ class PathDialog(forms.Dialog[bool]):
     # Registration Start button click handler
     def OnRegisterButtonClick(self, sender, e):
         self.status_textbox.Text = 'registration in progress ...'
-        self.registration_dialog = RegistrationDialog()
-        Rhino.UI.EtoExtensions.ShowSemiModal(self.registration_dialog, Rhino.RhinoDoc.ActiveDoc, Rhino.UI.RhinoEtoApp.MainWindow)
-        temp = self.registration_dialog.onOkButton_Click(sender, e)
-        print temp
-        
+        registration_dialog = RegistrationDialog()
+        Rhino.UI.EtoExtensions.ShowSemiModal(registration_dialog, Rhino.RhinoDoc.ActiveDoc, Rhino.UI.RhinoEtoApp.MainWindow)
         self.status_textbox.Text = 'registration complete'
 
-    # Registration Apply button click handler
-    def OnApplyButtonClick(self, sender, e):
-        self.status_textbox.Text = 'transformation applied'
 
     # Topography Configure button click handler
     def OnConfigureButtonClick(self, sender, e):
@@ -124,17 +115,17 @@ class PathDialog(forms.Dialog[bool]):
     def OnGenerateButtonClick(self, sender, e):
         self.status_textbox.Text = 'generating topography path'
         # Select the mesh
-        mesh = rs.GetObject("Select mesh", rs.filter.mesh)
-        topography_path = TopographyPath(mesh, self.topo_path_count, self.topo_offset_dist)
+        self.mesh = rs.GetObject("Select mesh", rs.filter.mesh )
+        topography_path = TopographyPath(self.mesh, self.topo_path_count, self.topo_offset_dist)
         if self.topo_gen_mode is 0:
             # Select 3 vertex on the mesh to construct a intersection plane
-            pt_1 = rs.GetPointOnMesh(mesh, "Select 1st vertice on mesh for constructing a plane")
-            pt_2 = rs.GetPointOnMesh(mesh, "Select 2nd vertice on mesh for constructing a plane")
-            pt_3 = rs.GetPointOnMesh(mesh, "Select 3rd vertice on mesh for constructing a plane")
+            pt_1 = rs.GetPointOnMesh(self.mesh, "Select 1st vertice on mesh for constructing a plane")
+            pt_2 = rs.GetPointOnMesh(self.mesh, "Select 2nd vertice on mesh for constructing a plane")
+            pt_3 = rs.GetPointOnMesh(self.mesh, "Select 3rd vertice on mesh for constructing a plane")
             self.polyline_point_array = topography_path.generatePolylineFrom3Pts(pt_1, pt_2, pt_3)
         else:
            # Select a top vertice on the mesh to construct a plane normal
-           mesh_top_pt = rs.GetPointOnMesh(mesh, "Select a top vertice on mesh")
+           mesh_top_pt = rs.GetPointOnMesh(self.mesh, "Select a top vertice on mesh")
            self.polyline_point_array = topography_path.generatePolylineFromCentroidTopPt(mesh_top_pt)
         result = rs.LastCommandResult()
         if result == 0:
