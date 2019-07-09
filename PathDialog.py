@@ -49,16 +49,13 @@ class PathDialog(forms.Dialog[bool]):
         # ---------------------------
         
         # - G-code group box -
-        gcode_groupbox = forms.GroupBox(Text = 'G-code Conversion', Padding = 5)
+        gcode_groupbox = forms.GroupBox(Text = 'Export', Padding = 5)
         grouplayout = forms.DynamicLayout()
         
-        self.convert_button = forms.Button(Text = 'Convert')
-        self.convert_button.Click += self.OnConvertButtonClick
+        self.export_gcode_button = forms.Button(Text = 'G code')
+        self.export_gcode_button.Click += self.OnExportButtonClick
         
-        self.export_button = forms.Button(Text = 'Export')
-        self.export_button.Click += self.OnExportButtonClick
-        
-        grouplayout.AddRow(self.convert_button,' ', self.export_button)
+        grouplayout.AddRow(self.export_gcode_button)
         gcode_groupbox.Content = grouplayout
         # ---------------------------
 
@@ -115,30 +112,28 @@ class PathDialog(forms.Dialog[bool]):
     def OnGenerateButtonClick(self, sender, e):
         self.status_textbox.Text = 'generating topography path'
         # Select the mesh
-        self.mesh = rs.GetObject("Select mesh", rs.filter.mesh )
-        topography_path = TopographyPath(self.mesh, self.topo_path_count, self.topo_offset_dist)
+        mesh = rs.GetObject("Select mesh", rs.filter.mesh )
+        self.topography_path = TopographyPath(mesh, self.topo_path_count, self.topo_offset_dist)
         if self.topo_gen_mode is 0:
             # Select 3 vertex on the mesh to construct a intersection plane
-            pt_1 = rs.GetPointOnMesh(self.mesh, "Select 1st vertice on mesh for constructing a plane")
-            pt_2 = rs.GetPointOnMesh(self.mesh, "Select 2nd vertice on mesh for constructing a plane")
-            pt_3 = rs.GetPointOnMesh(self.mesh, "Select 3rd vertice on mesh for constructing a plane")
-            self.polyline_point_array = topography_path.generatePolylineFrom3Pts(pt_1, pt_2, pt_3)
+            pt_1 = rs.GetPointOnMesh(mesh, "Select 1st vertice on mesh for constructing a plane")
+            pt_2 = rs.GetPointOnMesh(mesh, "Select 2nd vertice on mesh for constructing a plane")
+            pt_3 = rs.GetPointOnMesh(mesh, "Select 3rd vertice on mesh for constructing a plane")
+            self.polyline_point_array = self.topography_path.generatePolylineFrom3Pts(pt_1, pt_2, pt_3)
         else:
            # Select a top vertice on the mesh to construct a plane normal
-           mesh_top_pt = rs.GetPointOnMesh(self.mesh, "Select a top vertice on mesh")
-           self.polyline_point_array = topography_path.generatePolylineFromCentroidTopPt(mesh_top_pt)
+           mesh_top_pt = rs.GetPointOnMesh(mesh, "Select a top vertice on mesh")
+           self.polyline_point_array = self.topography_path.generatePolylineFromCentroidTopPt(mesh_top_pt)
         result = rs.LastCommandResult()
         if result == 0:
             self.status_textbox.Text = 'path generated'
         else:
             self.status_textbox.Text = 'unsuccessful'
         
-    # G-code Generate button click handler
-    def OnConvertButtonClick(self, sender, e):
-        self.status_textbox.Text = 'Gcode generated'
- 
     # G-code Export button click handler
     def OnExportButtonClick(self, sender, e):
+        self.status_textbox.Text = 'Gcode conversion'
+        self.topography_path.exportPolylineGcode(self.polyline_point_array)
         self.status_textbox.Text = 'Gcode exported'
 
     # Close button click handler
@@ -149,7 +144,6 @@ class PathDialog(forms.Dialog[bool]):
     # Close button click handler
     def OnOKButtonClick(self, sender, e):
         self.Close(True)
-        
 
 
 class TopographyConfigureDialog(forms.Dialog[bool]):

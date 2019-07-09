@@ -1,6 +1,8 @@
 import Rhino
 import rhinoscriptsyntax as rs
 
+from Robot import Robot
+
 class TopographyPath():
     """Topography path generating class"""
     def __init__(self, mesh, intersect_num = 10, offset_dis = 3):
@@ -50,10 +52,10 @@ class TopographyPath():
         plane_rotated = rs.RotatePlane(plane, 180.0, plane.XAxis)
         return plane_rotated
 
-    def exportPolylinePoints(polyline_list):
+    def exportPolylineCSV(self, polyline_list):
         """ export polyline points as *.cvs file"""
-        #create a filename variable
-        filename = rs.SaveFileName("Save CSV file","*.csv||", None, "ptExport", "csv")
+        #create a filename
+        filename = rs.SaveFileName("Save CSV file","*.csv||", None, "topography", "csv")
         
         #open the file for writing
         file = open(filename, 'w')
@@ -75,11 +77,42 @@ class TopographyPath():
                 # print "x: %.4f, y: %.4f, z: %.4f" %(x,y,z)
                 line = "%.4f,%.4f,%.4f \n" %(x,y,z)
                 file.write(line)
-        print "Exporting polyline points completed"
+        print "Exporting polyline points as CSV file successfully"
+        
         #Close the file after writing!
         file.close()
-        return
 
+    def exportPolylineGcode(self, polyline_list):
+        """export polyline array points as gcode file"""
+        robot = Robot()
+        #create a filename
+        filename = rs.SaveFileName("Save Gcode file","*.gcode||", None, "topography", "gcode")
+        
+        #open the file for writing
+        file = open(filename, 'w')
+        file.write("G21         ; Set units to mm\n")
+        file.write("G90         ; Absolute positioning\n")
+        file.write("M4 S0       ; Enable Laser (0 power)\n")
+        file.write("G0 X0 Y0    ; Initial position\n")
+        file.write("G1 F3000    ; Feed rate\n")
+         
+        # Gcode format
+        for polyline in polyline_list:
+            file.write("S100\n")
+            for pt in polyline:
+                x = pt.X
+                y = pt.Y
+                z = pt.Z
+                # print "x: %.4f, y: %.4f, z: %.4f" %(x,y,z)
+                robot_joint = robot.inverseKinematics([x, y, z])
+                line = "X%.4f  Y%.4f  Z%.4f \n" %(robot_joint[0], robot_joint[1], robot_joint[2])
+                file.write(line)
+            file.write("S0\n")
+        file.write("M5          ; Disable Laser")
+        print "Exporting Gcode successfully"
+        
+        #Close the file after writing!
+        file.close()
 
     def transformPolylines(polyline_list, transform_matrix):
         """transform a polyline point array/list by the given transformation matrix"""
@@ -108,13 +141,12 @@ if __name__ == "__main__":
     # mesh_top_pt = rs.GetPointOnMesh(mesh, "Select a top vertice on mesh")
     # polyline_point_array = topographyObj.generatePolylineFromCentroidTopPt(mesh_top_pt)
     
-    print polyline_point_array
-
     # Transform polyline point 
     #xform_2 = rs.XformRotation2(45.0, (0,0,1), (0,0,0))
     #polyline_point_array_transformed = transformPolylines(polyline_point_array, xform_2)
     #for polyline in polyline_point_array_transformed:
     #    rs.AddPolyline(polyline)
-
-    ## Exporting the points save as *.cvs file
-    #exportPolylinePoints(polyline_point_array)
+    
+    # Exporting the points save as gcode file
+    topographyObj.exportPolylineGcode(polyline_point_array)
+#    print polyline_point_array
