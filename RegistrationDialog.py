@@ -357,12 +357,12 @@ class SensorDialog(forms.Dialog[bool]):
         
         # Initialize table content
         self.data_array =[]
-#        for i in range(self.reg_pts_count):
-#            self.data_array.append([i+1, None, None, None, None])
-        self.data_array.append([1, -68, 154, 0, 48])
-        self.data_array.append([2, -182, 132.5, 0, 47.3])
-        self.data_array.append([3, -188, 202, 0, 49.2])
-        self.data_array.append([4, -145, 238.5, 0, 40.2])
+        for i in range(self.reg_pts_count):
+            self.data_array.append([i+1, None, None, None, None])
+        #self.data_array.append([1, -68, 154, 0, 48])
+        #self.data_array.append([2, -182, 132.5, 0, 47.3])
+        #self.data_array.append([3, -188, 202, 0, 49.2])
+        #self.data_array.append([4, -145, 238.5, 0, 40.2])
 
         # update grid view data
         self.data_gridview.DataStore = self.data_array

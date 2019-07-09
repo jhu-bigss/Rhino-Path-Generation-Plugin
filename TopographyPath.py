@@ -94,22 +94,25 @@ class TopographyPath():
         file.write("G90         ; Absolute positioning\n")
         file.write("M4 S0       ; Enable Laser (0 power)\n")
         file.write("G0 X0 Y0    ; Initial position\n")
-        file.write("G1 F3000    ; Feed rate\n")
          
         # Gcode format
         for polyline in polyline_list:
-            file.write("S100\n")
-            for pt in polyline:
-                x = pt.X
-                y = pt.Y
-                z = pt.Z
+            # Fast move to the first point of each polyline
+            robot_joint = robot.inverseKinematics([polyline[0].X, polyline[0].Y, polyline[0].Z])
+            line = "G0 X%.3f  Y%.3f  Z%.3f S0\n" %(robot_joint[0], robot_joint[1], robot_joint[2])
+            file.write(line)
+            file.write("G1 F3000    ; Feed rate\n")
+            
+            for pt in polyline[1:]:
                 # print "x: %.4f, y: %.4f, z: %.4f" %(x,y,z)
-                robot_joint = robot.inverseKinematics([x, y, z])
-                line = "X%.4f  Y%.4f  Z%.4f \n" %(robot_joint[0], robot_joint[1], robot_joint[2])
+                robot_joint = robot.inverseKinematics([pt.X, pt.Y, pt.Z])
+                line = "X%.3f  Y%.3f  Z%.3f S500\n" %(robot_joint[0], robot_joint[1], robot_joint[2])
                 file.write(line)
-            file.write("S0\n")
+            file.write("-------\n")
+            
         file.write("M5          ; Disable Laser")
-        print "Exporting Gcode successfully"
+        
+        print "G-code exported successfully!"
         
         #Close the file after writing!
         file.close()
