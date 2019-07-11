@@ -39,10 +39,12 @@ class TopographyPath():
         for i in range(intersect_num):
             # Plane intersection on mesh
             polylines_intersect = Rhino.Geometry.Intersect.Intersection.MeshPlane(rs.coercemesh(self.mesh), intersect_plane)
-            for result in polylines_intersect:
-                # Add polyline into Rhino UI and append the intersection points
-                polyline_point_array.append(rs.PolylineVertices(rs.AddPolyline(result)))
-                
+            if polylines_intersect is not None:
+                for result in polylines_intersect:
+                    # Add polyline into Rhino UI and append the intersection points
+                    polyline_point_array.append(rs.PolylineVertices(rs.AddPolyline(result)))
+            else:
+                continue
             # translate the intersect plane along its normal axis by a given distance
             xform = rs.XformTranslation(offset_distance*intersect_plane.ZAxis)
             intersect_plane = rs.PlaneTransform(intersect_plane, xform)
