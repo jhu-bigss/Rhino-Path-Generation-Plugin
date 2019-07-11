@@ -93,7 +93,6 @@ class TopographyPath():
         file.write("G21         ; Set units to mm\n")
         file.write("G90         ; Absolute positioning\n")
         file.write("M4 S0       ; Enable Laser (0 power)\n")
-        file.write("G0 X0 Y0    ; Initial position\n")
          
         # Gcode format
         for polyline in polyline_list:
@@ -112,6 +111,7 @@ class TopographyPath():
             
         file.write("M5          ; Disable Laser")
         
+        print ""
         print "G-code exported successfully!"
         
         #Close the file after writing!

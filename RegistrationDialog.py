@@ -249,7 +249,7 @@ class RegistrationDialog(forms.Dialog[bool]):
             del row[0]
         return self.rigid_transform_3D(machine_pts, mesh_pts)
     
-    def rigid_transform_3D(self, A, B):
+    def rigid_transform_3D(self, B, A):
         # Input: expects Nx3 matrix of points
         # Returns R,t
         # R = 3x3 rotation matrix
@@ -276,26 +276,16 @@ class RegistrationDialog(forms.Dialog[bool]):
         H = dot(transpose(AA),BB)
         U, S, Vt = linalg_svd(H)
         # R = Vt.T * U.T
-        R = dot(transpose(Vt),transpose(U))
-#        print "U"
-#        print U
-#        print "Vt"
-#        print Vt
-#        print "---"
+        R = dot(transpose(Vt), transpose(U))
     
         # special reflection case
         if det(R) < 0:
            print "Reflection detected"
-           Vt[2][:] = [x*-1 for x in Vt[2]]
+           Vt[2][:] = [-1 * x for x in Vt[2]]
            R = dot(transpose(Vt),transpose(U))
     
-        # t = -R*centroid_A.T + centroid_B.T
+        # t = - R*centroid_B.T + centroid_A.T
         t = subtract(transpose(centroid_B), dot(R, transpose(centroid_A)) )
-        
-#        print "R"
-#        print R
-#        print"t"
-#        print t
         
         return R, t
 
@@ -359,11 +349,16 @@ class SensorDialog(forms.Dialog[bool]):
         self.data_array =[]
         for i in range(self.reg_pts_count):
             self.data_array.append([i+1, None, None, None, None])
-        #self.data_array.append([1, -68, 154, 0, 48])
-        #self.data_array.append([2, -182, 132.5, 0, 47.3])
-        #self.data_array.append([3, -188, 202, 0, 49.2])
-        #self.data_array.append([4, -145, 238.5, 0, 40.2])
-
+        # big clear implant
+        #self.data_array.append([1, -67, 165, 0, 38.8])
+        #self.data_array.append([2, -182, 145, 0, 36.5])
+        #self.data_array.append([3, -190, 214, 0, 45.4])
+        #self.data_array.append([4, -147, 252, 0, 39.1])
+        # small clear implant with dimples
+        #self.data_array.append([1, -115, 131, 0, 38.9])
+        #self.data_array.append([2, -130, 146, 0, 35.2])
+        #self.data_array.append([3, -122, 162, 0, 31.0])
+        #self.data_array.append([4, -132, 178, 0, 30.4])
         # update grid view data
         self.data_gridview.DataStore = self.data_array
 
