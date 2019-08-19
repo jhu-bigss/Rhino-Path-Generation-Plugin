@@ -12,57 +12,92 @@ from TopographyPath import TopographyPath
 
 class PathDialog(forms.Dialog[bool]):
 
-    # initialiazation
     def __init__(self):
         self.Title = 'Laser Path Generation'
         self.Paddomg = drawing.Padding(5)
         self.Resizable = False
 
-        # Status text box
+        # *** Window Layout ***
+        layout = forms.DynamicLayout(Padding = drawing.Padding(10, 5), DefaultSpacing = drawing.Size(2,2))
+
+        # Status Textbox, non-edit
         status_label = forms.Label(Text = 'Status: ', VerticalAlignment = forms.VerticalAlignment.Center, TextAlignment = forms.TextAlignment.Right)
         self.status_textbox = forms.TextBox(Text = 'Get Started', TextAlignment = forms.TextAlignment.Center)
         self.status_textbox.ReadOnly = True
-
+        
+        layout.BeginVertical()
+        layout.AddRow(status_label, self.status_textbox)
+        layout.EndVertical()
+        
+        # = Begin of group boxes =
+        layout.BeginVertical()
+        # ---------------------------
         # - Registration group box -
         registration_groupbox = forms.GroupBox(Text = 'Implant', Padding = 5)
-        grouplayout = forms.DynamicLayout()
         
         self.register_button = forms.Button(Text = 'Registration')
         self.register_button.Click += self.OnRegisterButtonClick
         
+        grouplayout = forms.DynamicLayout()
         grouplayout.AddRow(self.register_button)
         registration_groupbox.Content = grouplayout
+        
+        layout.AddRow(registration_groupbox)
+        
         # ---------------------------
-
         # - Topography Path group box -
         topography_groupbox = forms.GroupBox(Text = 'Topography Path', Padding = 5)
+        
+        self.topo_config_btn = forms.Button(Text = 'Configure')
+        self.topo_config_btn.Click += self.OnTopoConfigButtonClick
+        
+        self.topo_gen_btn = forms.Button(Text = 'Generate')
+        self.topo_gen_btn.Click += self.OnTopoGenButtonClick
+        
         grouplayout = forms.DynamicLayout()
-        
-        self.configure_button = forms.Button(Text = 'Configure')
-        self.configure_button.Click += self.OnConfigureButtonClick
-        
-        self.generate_button = forms.Button(Text = 'Generate')
-        self.generate_button.Click += self.OnGenerateButtonClick
-        
-        grouplayout.AddRow(self.configure_button,' ', self.generate_button)
+        grouplayout.AddRow(self.topo_config_btn,'  ', self.topo_gen_btn)
         topography_groupbox.Content = grouplayout
-        # ---------------------------
         
+        layout.AddRow(topography_groupbox)
+        
+        # ---------------------------
+        # - 'V' Line Path group box -
+        vline_groupbox = forms.GroupBox(Text = '\'V\' Path', Padding = 5)
+        
+        self.vline_gen_button = forms.Button(Text = 'Generate')
+        # self.generate_button.Click += self.OnVlineGenButtonClick  TODO!!!
+        
+        grouplayout = forms.DynamicLayout()
+        grouplayout.AddRow(None, self.vline_gen_button, None)
+        vline_groupbox.Content = grouplayout
+        
+        layout.AddRow(vline_groupbox)
+        
+        # ---------------------------
         # - G-code group box -
         gcode_groupbox = forms.GroupBox(Text = 'Export', Padding = 5)
-        grouplayout = forms.DynamicLayout()
         
-        self.export_gcode_button = forms.Button(Text = 'G code')
+        self.export_csv_button = forms.Button(Text = '*.csv')
+        self.export_gcode_button = forms.Button(Text = '*.gcode')
         self.export_gcode_button.Click += self.OnExportButtonClick
         
-        grouplayout.AddRow(self.export_gcode_button)
+        grouplayout = forms.DynamicLayout()
+        grouplayout.AddRow(self.export_csv_button,'  ', self.export_gcode_button)
         gcode_groupbox.Content = grouplayout
-        # ---------------------------
+        
+        layout.AddRow(gcode_groupbox)
+        
+        # = End of group boxes =
+        layout.EndVertical()
 
         # add a logo at the bottom
         logo_image_view = forms.ImageView()
         logo_image_view.Size = drawing.Size(200, 30)
         logo_image_view.Image = drawing.Bitmap(__file__ + '../../img/longeviti.bmp')
+        
+        layout.BeginVertical()
+        layout.AddRow(logo_image_view)
+        layout.EndVertical()
 
         # Create the default button
         self.DefaultButton = forms.Button(Text = 'OK')
@@ -72,24 +107,8 @@ class PathDialog(forms.Dialog[bool]):
         self.AbortButton = forms.Button(Text = 'Cancel')
         self.AbortButton.Click += self.OnCloseButtonClick
 
-        # -- Window Layout --
-        layout = forms.DynamicLayout(Padding = drawing.Padding(10, 5), DefaultSpacing = drawing.Size(2,2))
-
-        layout.BeginVertical()
-        layout.AddRow(status_label, self.status_textbox)
-        layout.EndVertical()
-        
-        layout.BeginVertical()
-        layout.AddRow(registration_groupbox)
-        layout.AddRow(topography_groupbox)
-        layout.AddRow(gcode_groupbox)
-        layout.EndVertical()
-        
-        layout.BeginVertical()
-        layout.AddRow(logo_image_view)
-        layout.EndVertical()
-        
         layout.AddSeparateRow(None, self.DefaultButton, self.AbortButton, None)
+        
         self.Content = layout
 
     # Registration Start button click handler
@@ -99,37 +118,39 @@ class PathDialog(forms.Dialog[bool]):
         Rhino.UI.EtoExtensions.ShowSemiModal(registration_dialog, Rhino.RhinoDoc.ActiveDoc, Rhino.UI.RhinoEtoApp.MainWindow)
         self.status_textbox.Text = 'registration complete'
 
-
-    # Topography Configure button click handler
-    def OnConfigureButtonClick(self, sender, e):
+    # Topography configure button click handler
+    def OnTopoConfigButtonClick(self, sender, e):
         self.status_textbox.Text = 'configuring topography...'
         self.topography_configure_dialog = TopographyConfigureDialog()
         self.topography_configure_dialog.ShowModal(Rhino.UI.RhinoEtoApp.MainWindow)
         [self.topo_gen_mode, self.topo_path_count, self.topo_offset_dist] = self.topography_configure_dialog.OnOKButtonClick(sender, e)
         self.status_textbox.Text = 'configuration complete'
 
-    # Topography Generate button click handler
-    def OnGenerateButtonClick(self, sender, e):
+    # Topography generate button click handler
+    def OnTopoGenButtonClick(self, sender, e):
         self.status_textbox.Text = 'generating topography path'
         # Select the mesh
         mesh = rs.GetObject("Select mesh", rs.filter.mesh )
         self.topography_path = TopographyPath(mesh, self.topo_path_count, self.topo_offset_dist)
-        if self.topo_gen_mode is 0:
+        if self.topo_gen_mode is TOPO_PICK_3_POINTS:
             # Select 3 vertex on the mesh to construct a intersection plane
             pt_1 = rs.GetPointOnMesh(mesh, "Select 1st vertice on mesh for constructing a plane")
             pt_2 = rs.GetPointOnMesh(mesh, "Select 2nd vertice on mesh for constructing a plane")
             pt_3 = rs.GetPointOnMesh(mesh, "Select 3rd vertice on mesh for constructing a plane")
             self.polyline_point_array = self.topography_path.generatePolylineFrom3Pts(pt_1, pt_2, pt_3)
-        else:
+        elif self.topo_gen_mode is TOPO_PICK_TOP_POINT:
            # Select a top vertice on the mesh to construct a plane normal
            mesh_top_pt = rs.GetPointOnMesh(mesh, "Select a top vertice on mesh")
            self.polyline_point_array = self.topography_path.generatePolylineFromCentroidTopPt(mesh_top_pt)
+        else:
+            pass
         result = rs.LastCommandResult()
         if result == 0:
             self.status_textbox.Text = 'path generated'
         else:
             self.status_textbox.Text = 'unsuccessful'
-        
+    
+    
     # G-code Export button click handler
     def OnExportButtonClick(self, sender, e):
         self.status_textbox.Text = 'Gcode conversion'
@@ -147,18 +168,24 @@ class PathDialog(forms.Dialog[bool]):
 
 
 class TopographyConfigureDialog(forms.Dialog[bool]):
-
-    # initialiazation
+    
     def __init__(self):
         self.Title = 'Topography Path'
         self.Paddomg = drawing.Padding(5)
         self.Resizable = True
         
+        # define two global constants
+        global TOPO_PICK_3_POINTS
+        global TOPO_PICK_TOP_POINT
+        TOPO_PICK_3_POINTS = 0
+        TOPO_PICK_TOP_POINT = 1
+        
         # intersection plane creation mode
         mode_label = forms.Label(Text = 'Mode: ', VerticalAlignment = forms.VerticalAlignment.Center, TextAlignment = forms.TextAlignment.Right)
         self.mode_combobox = forms.ComboBox()
+        self.mode_combobox.ReadOnly = True
         self.mode_combobox.DataStore = ['pick 3 points', 'pick top point only']
-        self.mode_combobox.SelectedIndex = 0
+        self.mode_combobox.SelectedIndex = TOPO_PICK_3_POINTS
         
         # number of path to generate
         path_count_label = forms.Label(Text = 'Layers: ', VerticalAlignment = forms.VerticalAlignment.Center, TextAlignment = forms.TextAlignment.Right)
@@ -203,6 +230,7 @@ class TopographyConfigureDialog(forms.Dialog[bool]):
     def OnOKButtonClick(self, sender, e):
         self.Close(True)
         return [self.mode_combobox.SelectedIndex, int(self.path_count_stepper.Value), self.offset_dist_stepper.Value]
+
 
 # The script that will be using the dialog.
 def openPathDialog():
