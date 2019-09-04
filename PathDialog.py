@@ -9,6 +9,7 @@ import Eto.Forms as forms
 
 from RegistrationDialog import RegistrationDialog
 from TopographyPath import TopographyPath
+from VLinePath import VLinePath
 
 class PathDialog(forms.Dialog[bool]):
 
@@ -129,9 +130,8 @@ class PathDialog(forms.Dialog[bool]):
     # Topography generate button click handler
     def OnTopoGenButtonClick(self, sender, e):
         self.status_textbox.Text = 'generating topography path'
-        # Select the mesh
-        mesh = rs.GetObject("Select mesh", rs.filter.mesh )
-        self.topography_path = TopographyPath(mesh, self.topo_path_count, self.topo_offset_dist)
+        # create a topography path object, select the mesh
+        self.topography_path = TopographyPath(rs.GetObject("Select mesh", rs.filter.mesh ), self.topo_path_count, self.topo_offset_dist)
         if self.topo_gen_mode is TOPO_PICK_3_POINTS:
             # Select 3 vertex on the mesh to construct a intersection plane
             pt_1 = rs.GetPointOnMesh(mesh, "Select 1st vertice on mesh for constructing a plane")
@@ -146,10 +146,17 @@ class PathDialog(forms.Dialog[bool]):
             pass
         result = rs.LastCommandResult()
         if result == 0:
-            self.status_textbox.Text = 'path generated'
+            self.status_textbox.Text = 'topography path generated'
         else:
             self.status_textbox.Text = 'unsuccessful'
     
+    # V Line path generate button click handler
+    def OnVLineGenButtonClick(self, sender, e):
+        self.status_textbox.Text = 'generating V line path'
+        # create a V line path object, select the mesh
+        self.vline_path = VLinePath(rs.GetObject("Select mesh", rs.filter.mesh ))
+        self.polyline_v_line = self.vline_path.generateVLineFrom3Pts()
+        # CONTINUE
     
     # G-code Export button click handler
     def OnExportButtonClick(self, sender, e):

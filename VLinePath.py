@@ -131,6 +131,5 @@ if __name__ == "__main__":
     vlineObj = VLinePath(mesh)
     v_polyline = vlineObj.generateVLineFrom3Pts()
     
-    
     # Exporting the points save as gcode file
 #    vlineObj.exportVLineGcode(v_polyline)
