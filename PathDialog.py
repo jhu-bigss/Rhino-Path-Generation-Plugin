@@ -66,7 +66,7 @@ class PathDialog(forms.Dialog[bool]):
         vline_groupbox = forms.GroupBox(Text = '\'V\' Path', Padding = 5)
         
         self.vline_gen_button = forms.Button(Text = 'Generate')
-        # self.generate_button.Click += self.OnVlineGenButtonClick  TODO!!!
+        self.vline_gen_button.Click += self.OnVLineGenButtonClick
         
         grouplayout = forms.DynamicLayout()
         grouplayout.AddRow(None, self.vline_gen_button, None)
@@ -155,8 +155,8 @@ class PathDialog(forms.Dialog[bool]):
         self.status_textbox.Text = 'generating V line path'
         # create a V line path object, select the mesh
         self.vline_path = VLinePath(rs.GetObject("Select mesh", rs.filter.mesh ))
-        self.polyline_v_line = self.vline_path.generateVLineFrom3Pts()
-        # CONTINUE
+        self.vline_path.generateVLineFrom3Pts()
+        self.vline_path.exportGcode()
     
     # G-code Export button click handler
     def OnExportButtonClick(self, sender, e):

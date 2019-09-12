@@ -28,7 +28,7 @@ class RegistrationDialog(forms.Dialog[bool]):
         self.reg_pts_count = int(self.pts_count_stepper.Value)
 
         # set content of the collapsed section
-        self.collapsePanel = forms.DynamicLayout(Visible = False, Padding = drawing.Padding(40, 10), DefaultSpacing = drawing.Size(5, 5))
+        self.collapsePanel = forms.DynamicLayout(Visible = True, Padding = drawing.Padding(40, 10), DefaultSpacing = drawing.Size(5, 5))
         self.collapsePanel.BeginVertical()
         
         # --- machine grid view ---
