@@ -1,13 +1,4 @@
 # GRBL controller dialog
-
-from __future__ import absolute_import
-from __future__ import print_function
-
-__version__ = "0.1.10-dev"
-__date__    = "1 Aug 2019"
-__author__  = "Joshua Liu"
-__email__   = "liushuya7@gmail.com"
-
 import rhinoscriptsyntax as rs
 import scriptcontext
 import Rhino.UI
@@ -15,9 +6,6 @@ import Eto
 import Eto.Drawing as drawing
 import Eto.Forms as forms
 
-import os
-import sys
-import getopt
 import System
 
 try:
@@ -25,16 +13,9 @@ try:
 except:
 	serial = None
 
-PRGPATH=os.path.abspath(os.path.dirname(__file__))
-sys.path.append(PRGPATH)
-sys.path.append(os.path.join(PRGPATH, 'lib'))
-sys.path.append(os.path.join(PRGPATH, 'controller'))
 
 import gettext
 _ = gettext.gettext
-
-from Sender import Sender, NOT_CONNECTED, STATECOLOR, STATECOLORDEF
-
 _openserial = True	# override ini parameters
 _device     = None
 _baud       = None
@@ -63,11 +44,9 @@ geometry = None
 #==============================================================================
 # Main Application Dialog
 #==============================================================================
-class GrblDialog(forms.Dialog[bool],Sender):
+class GrblDialog(forms.Dialog[bool]):
 
     def __init__(self):
-        Sender.__init__(self)
-        
         self.Title = "GRBL GUI"
         self.Resizable = False
         self.Padding = drawing.Padding(5)
