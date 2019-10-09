@@ -5,14 +5,16 @@ import rhinoscriptsyntax as rs
 from Robot import Robot
 
 class MillingPath():
-    """V line path generating class"""
+    """Pockect Milling path generation class"""
     def __init__(self, mesh):
         self.mesh = mesh
         # self.mesh_centroid = rs.MeshAreaCentroid(self.mesh)
         self.beam_diameter = 0.4 # mm
         self.pocket_edge_margin = 0 # set 0 or 1/2 of the beam diameter
-        self.layer_depth = 2 # mm
-        self.layer_count = 8
+        self.layer_depth = 1 # mm
+        self.layer_count = 4
+        self.feed_rate = "5000"
+        self.laser_power = "800" # range: 0 - 1000
 
     def generateMillingConstantDepth(self):
         # Bonding Box
@@ -248,24 +250,69 @@ class MillingPath():
         return z_dir_polyline_list
 
 
-    def addPath2RhinoDoc4Display(self, path_bundle):
+    def addPath2RhinoDoc4Display(self, layered_path):
         # Add to the Rhino document for display
         # input: path_bundle - 2 dimensional path layers of polyline lists
-        for layer in path_bundle:
+        for layer in layered_path:
             for polyline in layer:
                 doc.Objects.AddPolyline( polyline )
 
+
+    def generateGcode(self, layered_path):
+        """export gcode file"""
+        robot = Robot()
+        #create a filename
+        filename = rs.SaveFileName("Save Gcode file","*.gcode||", None, "milling", "gcode")
+        
+        #open the file for writing
+        file = open(filename, 'w')
+        file.write("G21         ; Set units to mm\n")
+        file.write("G90         ; Absolute positioning\n")
+        file.write("M4 S0       ; Enable Laser (0 power)\n")
+        file.write("\n")
+         
+        # Gcode format
+        for layer in layered_path:
+            # Fast move to the first point of each layer, then feedforward
+            for polyline in layer:
+                n_total = len(polyline)
+                for n, point in enumerate(polyline):
+                    joint = robot.inverseKinematics([point.X, point.Y, point.Z])
+                    
+                    if n < n_total-1:
+                        if n == 0:
+                            line = "G0 X%.3f  Y%.3f  Z%.3f\n" %(joint[0], joint[1], joint[2])
+                            file.write(line)
+                            line = "G1 F" + self.feed_rate + "    ; Feed rate\n"
+                            file.write(line)
+                            line = "S" + self.laser_power + "\n"
+                            file.write(line)
+                        else:
+                            line = "X%.3f  Y%.3f  Z%.3f"%(joint[0], joint[1], joint[2]) + "\n"
+                            file.write(line)
+                    else:
+                        line = "X%.3f  Y%.3f  Z%.3f"%(joint[0], joint[1], joint[2]) + "\n" 
+                        file.write(line)
+                        file.write("S0\n")
+            file.write("-------\n")
+            
+        file.write("M5          ; Disable Laser")
+        
+        print "G-code exported successfully!"
+        
+        #Close the file after writing!
+        file.close()
 
 if __name__ == "__main__":
     # Select the mesh
     mesh = rs.GetObject("Select mesh", rs.filter.mesh)
     
     # Generate Milling path
-    milling_obj = MillingPath(mesh)
-    #milling_polyline = MillingObj.generateMillingConstantDepth()
+    milling_path_obj = MillingPath(mesh)
+    layered_path = milling_path_obj.generateMillingConstantDepth()
     
-    path_bundle = milling_obj.generateMillingFlatBottom()
-    milling_obj.addPath2RhinoDoc4Display(path_bundle)
+    #layered_path = milling_path_obj.generateMillingFlatBottom()
+    #milling_path_obj.addPath2RhinoDoc4Display(layered_path)
     
     # Exporting the points save as gcode file
-#    MillingObj.exportMillingGcode(v_polyline)
+    milling_path_obj.generateGcode(layered_path)
